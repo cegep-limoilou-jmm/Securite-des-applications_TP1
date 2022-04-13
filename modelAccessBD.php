@@ -19,7 +19,7 @@ function ajouterUtilisateur($user, $mdp)
 function connection($user, $mdp)
 {
     try {
-        $bd = new PDO('mysql:host=localhost;dbname=tp1;charset=utf8', 'root', '665');
+        $bd = new PDO('mysql:host=localhost;dbname=tp1;charset=utf8', 'root', '');
     } catch (Exception $e) {
         echo ('Erreur : ' . $e->getMessage());
         die();
@@ -45,7 +45,7 @@ function connection($user, $mdp)
     return $return;
 }
 
-function verifyAttempt()
+function verifyAttempt($user)
 {
     $req = readLoginAttempt();
     $rep = $req->fetch();
@@ -55,13 +55,14 @@ function verifyAttempt()
     if ($attempts >= 3)
         $attempts = 0;
 
-    if ($rep && $block_delay <= new DateTime()) {
+    if ($rep && $block_delay <= date('Y-m-d H:i:s')) {
         if (($attempts + 1) >= 3 )
             $block_delay.add(new DateInterval('PT15S'));
-        updateAttempt(block_delay, $attempts + 1);
+        $attempts++;
+        updateAttempt($user, $block_delay, $attempts));
         $return = true;
     } else if (!$rep) {
-        $addAttempt();
+        $addAttempt($user);
         $return = true;
     } else {
         $return = false;
@@ -70,27 +71,27 @@ function verifyAttempt()
     return $return;
 }
 
-function readLoginAttempt()
+function readLoginAttempt($user)
 {
     $bdd = new PDO('mysql:host=localhost;dbname=tp1;charset=utf8', 'root', '');
 
-    $req = $bdd->prepare('SELECT * FROM login_attempts WHERE ip = ?;');
+    $req = $bdd->prepare('SELECT * FROM login_attempts WHERE user = ?;');
     $retour = $req->execute(array(
-        $_SERVER['REMOTE_ADDR']
+        $user
     ));
     $req->closeCursor();
 
     return $retour;
 }
 
-function addAttempt()
+function addAttempt($user)
 {
     $bdd = new PDO('mysql:host=localhost;dbname=tp1;charset=utf8', 'root', '');
-    $block_delay = new DateTime();
+    $block_delay = date('Y-m-d H:i:s');
 
     $req = $bdd->prepare('INSERT INTO login_attempts(ip, block_delay, attempts) VALUES (?, ?, 1);');
     $retour = $req->execute(array(
-        $_SERVER['REMOTE_ADDR'],
+        $user,
         $block_delay
     ));
     $req->closeCursor();
@@ -98,15 +99,15 @@ function addAttempt()
     return $retour;
 }
 
-function updateAttempt($block_delay, $attempts)
+function updateAttempt($user, $block_delay, $attempts)
 {
     $bdd = new PDO('mysql:host=localhost;dbname=tp1;charset=utf8', 'root', '');
 
-    $req = $bdd->prepare('UPDATE login_attempts SET block_delay = ?, attempts = ? WHERE ip = ?;');
+    $req = $bdd->prepare('UPDATE login_attempts SET block_delay = ?, attempts = ? WHERE user = ?;');
     $retour = $req->execute(array(
         $block_delay,
         $attempts,
-        $_SERVER['REMOTE_ADDR']
+        $user
     ));
     $req->closeCursor();
 
