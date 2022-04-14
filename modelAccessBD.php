@@ -57,7 +57,7 @@ function verifyAttempt($user)
 
     if ($rep && $block_delay <= date('Y-m-d H:i:s')) {
         if (($attempts + 1) >= 3 )
-            $block_delay.add(new DateInterval('PT15S'));
+            $block_delay = date('Y-m-d H:i:s', strtotime('+15 seconds', strtotime($block_delay)));
         $attempts++;
         updateAttempt($user, $block_delay, $attempts));
         $return = true;
@@ -89,7 +89,7 @@ function addAttempt($user)
     $bdd = new PDO('mysql:host=localhost;dbname=tp1;charset=utf8', 'root', '');
     $block_delay = date('Y-m-d H:i:s');
 
-    $req = $bdd->prepare('INSERT INTO login_attempts(ip, block_delay, attempts) VALUES (?, ?, 1);');
+    $req = $bdd->prepare('INSERT INTO login_attempts(user, block_delay, attempts) VALUES (?, ?, 1);');
     $retour = $req->execute(array(
         $user,
         $block_delay
